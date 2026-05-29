@@ -1,37 +1,19 @@
-# Base for builder
-FROM debian:stable-20250520-slim AS builder
-# Deps for builder
-RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates ldc git clang dub libz-dev libssl-dev libplist-dev libplist-2.0-4 \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+# Wir nehmen dein geforktes Image als Basis
+FROM dadoum/anisette-v3-server:latest 
 
-# Build for builder
-WORKDIR /opt/
-COPY . .
-RUN DC=ldc2 dub build -c "static" --build-mode allAtOnce -b release --compiler=ldc2
+USER root
 
-# Base for run
-FROM debian:stable-slim
-RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates curl libplist-dev libplist-2.0-4\
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+# Installiere Nginx und gettext (für envsubst)
+# HINWEIS: Falls dein Base-Image auf Alpine basiert, ersetze apt-get durch:
+# RUN apk add --no-cache nginx gettext
+RUN apt-get update && apt-get install -y nginx gettext-base && rm -rf /var/lib/apt/lists/*
 
-# Copy build artefacts to run
-WORKDIR /opt/
-COPY --from=builder /opt/anisette-v3-server /opt/anisette-v3-server
+# Kopiere unsere neuen Dateien in den Container
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
+COPY entrypoint.sh /app/entrypoint.sh
 
-# Create default provisioning folder
-RUN mkdir -p /opt/anisette-v3/provisioning
+# Render erwartet, dass wir auf 10000 lauschen, falls kein $PORT übergeben wird
+ENV PORT=10000
 
-# Setup rootless user which works with the volume mount
-RUN useradd -ms /bin/bash Alcoholic \
- && mkdir /home/Alcoholic/.config/anisette-v3/lib/ -p \
- && chown -R Alcoholic /home/Alcoholic/ \
- && chmod -R +wx /home/Alcoholic/ \
- && chown -R Alcoholic /opt/ \
- && chmod -R +wx /opt/
-
-# Run the artefact
-USER Alcoholic
-EXPOSE 6969
-ENTRYPOINT [ "/opt/anisette-v3-server" ]
+# Setze den neuen Entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]
