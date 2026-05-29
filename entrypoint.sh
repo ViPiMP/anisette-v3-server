@@ -7,7 +7,7 @@ envsubst '${PORT} ${SECRET_PATH}' < /etc/nginx/nginx.conf.template > /etc/nginx/
 
 echo "Starte Anisette-Backend im Hintergrund..."
 # Globaler Aufruf ohne ./ (für den Fall, dass es in /usr/bin oder /usr/local/bin liegt)
-anisette-v3-server &
+./anisette-v3-server &
 
 echo "Starte Nginx-Proxy..."
 # 'exec' sorgt dafür, dass Nginx den PID 1 übernimmt und Signale (wie SIGTERM) korrekt empfängt
