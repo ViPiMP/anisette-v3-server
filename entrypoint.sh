@@ -1,12 +1,14 @@
 #!/bin/sh
+# Beende das Skript sofort, falls ein Befehl fehlschlägt
+set -e 
 
-# 1. Ersetze die Variablen im Template mit den Werten aus dem Render-Dashboard
+echo "Generiere Nginx-Config aus Template..."
 envsubst '${PORT} ${SECRET_PATH}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 
-# 2. Starte den Anisette-Server im Hintergrund (Port 6969)
-# WICHTIG: Prüfe, wie das Binary in deinem Fork genau heißt! 
-# Meistens liegt es einfach im aktuellen Verzeichnis.
-./anisette-v3-server &
+echo "Starte Anisette-Backend im Hintergrund..."
+# Globaler Aufruf ohne ./ (für den Fall, dass es in /usr/bin oder /usr/local/bin liegt)
+anisette-v3-server &
 
-# 3. Starte Nginx im Vordergrund, damit der Render-Container läuft
-nginx -g 'daemon off;'
+echo "Starte Nginx-Proxy..."
+# 'exec' sorgt dafür, dass Nginx den PID 1 übernimmt und Signale (wie SIGTERM) korrekt empfängt
+exec nginx -g 'daemon off;'
